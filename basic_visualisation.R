@@ -122,3 +122,30 @@ ggplot(tmp, aes(x=date, y=acoustic_sco$PC2, colour=colony)) +
   geom_point() +
   facet_wrap(~site)
 detach("package:vegan", unload = TRUE)
+
+# Compare some of disease levels over time
+ggplot(tmp, aes(x=date, y=varroa_per_300_bees1, colour=colony)) +
+  geom_point() +
+  facet_wrap(~site)
+ggplot(tmp, aes(x=date, y=cbpv_status1, colour=colony)) +
+  geom_point() +
+  facet_wrap(~site)
+# And by disease severity with acoustics
+ggplot(tmp, aes(x = varroa_per_300_bees1, y = acoustic_sco$PC1, colour=colony)) +
+  geom_point() +
+  facet_wrap(~site)
+ggplot(tmp, aes(x = varroa_per_300_bees1, y = acoustic_sco$PC2, colour=colony)) +
+  geom_point() +
+  facet_wrap(~site)
+ggplot(tmp, aes(x = cbpv_status1, y = acoustic_sco$PC1, colour=colony)) +
+  geom_boxplot() +
+  facet_wrap(~site)
+ggplot(tmp, aes(x = cbpv_status1, y = acoustic_sco$PC2, colour=colony)) +
+  geom_boxplot() +
+  facet_wrap(~site)
+
+# A few correlations of acoustic stuff
+tmp3 <- cbind(tmp2, acoustic_sco)
+library(ggcorrplot)
+corr <- cor(tmp3)
+ggcorrplot(corr, hc.order = TRUE)
