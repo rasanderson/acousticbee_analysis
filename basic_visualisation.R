@@ -149,3 +149,15 @@ tmp3 <- cbind(tmp2, acoustic_sco)
 library(ggcorrplot)
 corr <- cor(tmp3)
 ggcorrplot(corr, hc.order = TRUE)
+
+
+# Some comparisons of acoustics with weather
+ggplot(tmp, aes(x = temperature, y = ACI, colour = colony)) +
+  geom_point() +
+  facet_wrap(~site)
+ggplot(tmp, aes(x = windsp, y = ACI, colour = colony)) +
+  geom_point() +
+  facet_wrap(~site)
+ggplot(tmp4, aes(x = rain_mm_h_mean, y = mean_dfreq, colour = colony)) +
+  geom_point() +
+  facet_wrap(~site)
