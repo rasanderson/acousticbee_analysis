@@ -7,6 +7,8 @@ library(dplyr)
 library(lubridate)
 
 rawd <- read.csv("data/All_Data_Master_Shortened.csv")
+# Three rows with missing values causing trouble need removing
+rawd <- rawd[!is.na(rawd$ACI),]
 rawd$timestamp    <- ymd_hms(rawd$timestamp)
 rawd$date         <- ymd(rawd$date)
 rawd$time         <- hms(rawd$time)
@@ -104,3 +106,19 @@ ggplot(tmp, aes(x=date, y=freq.IPR, colour=colony)) + # STFT frequency inter-per
   geom_point() +
   facet_wrap(~site)
 
+# Check acoustic measures in a PCA out of curiosity
+library(vegan)
+tmp2 <- tmp[, 14:41]
+tmp2 <- decostand(tmp2, method = "hellinger")
+acoustic_pca <- rda(tmp2)
+plot(acoustic_pca, display = "species")
+plot(acoustic_pca, display = "sites")
+acoustic_sco <- data.frame(scores(acoustic_pca, display="sites"))
+
+ggplot(tmp, aes(x=date, y=acoustic_sco$PC1, colour=colony)) +
+  geom_point() +
+  facet_wrap(~site)
+ggplot(tmp, aes(x=date, y=acoustic_sco$PC2, colour=colony)) +
+  geom_point() +
+  facet_wrap(~site)
+detach("package:vegan", unload = TRUE)
