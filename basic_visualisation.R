@@ -239,6 +239,9 @@ ggplot(tmp, aes(x = cbpv_status1, y = freq_mode, colour=colony)) +
 ggplot(tmp, aes(x = cbpv_status1, y = RMS, colour=colony)) +
   geom_boxplot() +
   facet_wrap(~site)
+ggplot(tmp, aes(x = cbpv_status1, y = freq.IPR, colour=colony)) +
+  geom_boxplot() +
+  facet_wrap(~site)
 
 # A few correlations of acoustic stuff
 tmp3 <- cbind(tmp2, acoustic_sco)
