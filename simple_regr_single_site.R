@@ -1,8 +1,8 @@
-# Single site simple_regr
+# Simple regression-based DL model
 #
-# Deep learning models that are regression based, but just pick one location
+# Deep learning models that are regression based
 rm(list = ls())
-location <- "Selby"
+
 
 library(ggplot2)
 library(dplyr)
@@ -26,28 +26,32 @@ data_subset <- filter(rawd, date <= "2022-08-31")
 data_subset$day_of_year <- yday(data_subset$date)
 data_subset$cos_hour <- cos((2 * pi * data_subset$hour ) / 24)
 data_subset$sin_hour <- sin((2 * pi * data_subset$hour ) / 24)
+data_subset$grid_easting2 <- data_subset$grid_easting^2
+data_subset$grid_northing2 <- data_subset$grid_northing^2
 
 # Begin with just the "meta-data" about the environment ####
 # Work on the Varroa as more variable response
 # However, no records at Thorganby as not assessed. Remove missing values.
 # Note there are 175 NA for station_easting/northing, but 320 for grid_easting/n
 data_subset <- filter(data_subset, site != "Thorganby") %>% 
-  filter(site == location) %>% 
   drop_na(grid_easting) %>% 
   drop_na(grid_northing) %>% 
   drop_na(rain_mm_h_mean) %>% 
   drop_na(windsp) %>% 
   drop_na(temperature)
 
-meta_variables <- c("varroa_per_300_bees1", "day_of_year", "cos_hour", "sin_hour",
-                    "grid_easting", "grid_northing", "rain_mm_h_mean", "windsp",
-                    "temperature")
-meta_subset <- select(data_subset, all_of(meta_variables))
+# Split data first, so meta- and audio- using same data points
 library(keras)
 library(rsample)
-split <- initial_split(meta_subset, 0.8)
-train_dataset <- training(split)
-test_dataset <- testing(split)
+split <- initial_split(data_subset, 0.8)
+split_train_dataset <- training(split)
+split_test_dataset <- testing(split)
+
+meta_variables <- c("varroa_per_300_bees1", "day_of_year", "cos_hour", "sin_hour",
+                    "grid_easting", "grid_northing", "rain_mm_h_mean", "windsp",
+                    "temperature", "grid_easting2", "grid_northing2")
+meta_train_dataset <- select(split_train_dataset, all_of(meta_variables))
+meta_test_dataset <- select(split_test_dataset, all_of(meta_variables))
 # # Smoothed freq histograms and scatterplots (slow)
 # train_dataset %>%
 #   select(day_of_year, cos_hour, sin_hour, temperature) %>%
@@ -56,21 +60,21 @@ test_dataset <- testing(split)
 # skimr::skim(meta_subset)
 
 # Now split features from labels
-train_features <- train_dataset %>% select(-varroa_per_300_bees1)
-test_features <- test_dataset %>% select(-varroa_per_300_bees1)
+meta_train_features <- meta_train_dataset %>% select(-varroa_per_300_bees1)
+meta_test_features <- meta_test_dataset %>% select(-varroa_per_300_bees1)
 
-train_labels <- train_dataset %>% select(varroa_per_300_bees1)
-test_labels <- test_dataset %>% select(varroa_per_300_bees1)
+meta_train_labels <- meta_train_dataset %>% select(varroa_per_300_bees1)
+meta_test_labels <- meta_test_dataset %>% select(varroa_per_300_bees1)
 
 # Normalise the data
-normalizer <- layer_normalization(axis = -1L)
+meta_normalizer <- layer_normalization(axis = -1L)
 # The adapt() function fits the state of the normalized data and fixes it so
 # it doesn't change subsequently
-normalizer %>% adapt(as.matrix(train_features))
-print(normalizer$mean)
-first <- as.matrix(train_features[1,])
+meta_normalizer %>% adapt(as.matrix(meta_train_features))
+print(meta_normalizer$mean)
+first <- as.matrix(meta_train_features[1,])
 cat('First example:', first)
-cat('Normalized:', as.matrix(normalizer(first)))
+cat('Normalized:', as.matrix(meta_normalizer(first)))
 
 # As relatively simple, use a single function to define and compile model
 build_and_compile_model <- function(norm) {
@@ -91,33 +95,33 @@ build_and_compile_model <- function(norm) {
 }
 
 # Apply to normalized data
-dnn_model <- build_and_compile_model(normalizer)
-summary(dnn_model)
+meta_dnn_model <- build_and_compile_model(meta_normalizer)
+summary(meta_dnn_model)
 # Now the slow bit. Overtraining after about 20 epochs
-history <- dnn_model %>% fit(
-  as.matrix(train_features),
-  as.matrix(train_labels),
+meta_history <- meta_dnn_model %>% fit(
+  as.matrix(meta_train_features),
+  as.matrix(meta_train_labels),
   validation_split = 0.2,
   verbose = 1,
   epochs = 50
 )
-plot(history)
+plot(meta_history)
 # Results on test dataset
-test_results <- list()
-test_results[['dnn_model']] <- dnn_model %>% evaluate(
-  as.matrix(test_features),
-  as.matrix(test_labels),
+meta_test_results <- list()
+meta_test_results[['dnn_model']] <- meta_dnn_model %>% evaluate(
+  as.matrix(meta_test_features),
+  as.matrix(meta_test_labels),
   verbose = 0
 )
-sapply(test_results, function(x) x)
+sapply(meta_test_results, function(x) x)
 # Make some predictions
-test_predictions <- predict(dnn_model, as.matrix(test_features))
-ggplot(data.frame(pred = as.numeric(test_predictions), varroa = test_labels$varroa_per_300_bees1)) +
+meta_test_predictions <- predict(meta_dnn_model, as.matrix(meta_test_features))
+ggplot(data.frame(pred = as.numeric(meta_test_predictions), varroa = meta_test_labels$varroa_per_300_bees1)) +
   geom_point(aes(x = pred, y = varroa)) +
   geom_abline(intercept = 0, slope = 1, color = "blue") +
   geom_smooth(aes(x = pred, y = varroa), method = "lm", color = "red", se = FALSE)
 # Error distribution
-qplot(test_predictions - test_labels$varroa_per_300_bees1, geom = "density")
+qplot(meta_test_predictions - meta_test_labels$varroa_per_300_bees1, geom = "density")
 
 
 
@@ -128,12 +132,8 @@ acoustic_variables <- c("varroa_per_300_bees1", "ACI", "RMS", "H", "mean_dfreq",
                         "kurtosis", "sfm", "sh", "prec", "time.P1", "time.M",
                         "time.P2", "time.IPR", "freq.P1", "freq.M", "freq.P2",
                         "freq.IPR")
-acoustic_subset <- select(data_subset, all_of(acoustic_variables))
-library(keras)
-library(rsample)
-split <- initial_split(acoustic_subset, 0.8)
-train_dataset <- training(split)
-test_dataset <- testing(split)
+acoustic_train_dataset <- select(split_train_dataset, all_of(acoustic_variables))
+acoustic_test_dataset <- select(split_test_dataset, all_of(acoustic_variables))
 # # Smoothed freq histograms and scatterplots (slow)
 # train_dataset %>%
 #   select(day_of_year, cos_hour, sin_hour, temperature) %>%
@@ -142,21 +142,21 @@ test_dataset <- testing(split)
 # skimr::skim(meta_subset)
 
 # Now split features from labels
-train_features <- train_dataset %>% select(-varroa_per_300_bees1)
-test_features <- test_dataset %>% select(-varroa_per_300_bees1)
+acoustic_train_features <- acoustic_train_dataset %>% select(-varroa_per_300_bees1)
+acoustic_test_features <- acoustic_test_dataset %>% select(-varroa_per_300_bees1)
 
-train_labels <- train_dataset %>% select(varroa_per_300_bees1)
-test_labels <- test_dataset %>% select(varroa_per_300_bees1)
+acoustic_train_labels <- acoustic_train_dataset %>% select(varroa_per_300_bees1)
+acoustic_test_labels <- acoustic_test_dataset %>% select(varroa_per_300_bees1)
 
 # Normalise the data
-normalizer <- layer_normalization(axis = -1L)
+acoustic_normalizer <- layer_normalization(axis = -1L)
 # The adapt() function fits the state of the normalized data and fixes it so
 # it doesn't change subsequently
-normalizer %>% adapt(as.matrix(train_features))
-print(normalizer$mean)
-first <- as.matrix(train_features[1,])
+acoustic_normalizer %>% adapt(as.matrix(acoustic_train_features))
+print(acoustic_normalizer$mean)
+first <- as.matrix(acoustic_train_features[1,])
 cat('First example:', first)
-cat('Normalized:', as.matrix(normalizer(first)))
+cat('Normalized:', as.matrix(acoustic_normalizer(first)))
 
 # As relatively simple, use a single function to define and compile model
 build_and_compile_model <- function(norm) {
@@ -177,30 +177,30 @@ build_and_compile_model <- function(norm) {
 }
 
 # Apply to normalized data
-dnn_model <- build_and_compile_model(normalizer)
-summary(dnn_model)
+acoustic_dnn_model <- build_and_compile_model(acoustic_normalizer)
+summary(acoustic_dnn_model)
 # Now the slow bit. Overtraining after about 20 epochs
-history <- dnn_model %>% fit(
-  as.matrix(train_features),
-  as.matrix(train_labels),
+acoustic_history <- acoustic_dnn_model %>% fit(
+  as.matrix(acoustic_train_features),
+  as.matrix(acoustic_train_labels),
   validation_split = 0.2,
   verbose = 1,
   epochs = 25
 )
-plot(history)
+plot(acoustic_history)
 # Results on test dataset
-test_results <- list()
-test_results[['dnn_model']] <- dnn_model %>% evaluate(
-  as.matrix(test_features),
-  as.matrix(test_labels),
+acoustic_test_results <- list()
+acoustic_test_results[['dnn_model']] <- acoustic_dnn_model %>% evaluate(
+  as.matrix(acoustic_test_features),
+  as.matrix(acoustic_test_labels),
   verbose = 0
 )
-sapply(test_results, function(x) x)
+sapply(acoustic_test_results, function(x) x)
 # Make some predictions
-test_predictions <- predict(dnn_model, as.matrix(test_features))
-ggplot(data.frame(pred = as.numeric(test_predictions), varroa = test_labels$varroa_per_300_bees1)) +
+acoustic_test_predictions <- predict(acoustic_dnn_model, as.matrix(acoustic_test_features))
+ggplot(data.frame(pred = as.numeric(acoustic_test_predictions), varroa = acoustic_test_labels$varroa_per_300_bees1)) +
   geom_point(aes(x = pred, y = varroa)) +
   geom_abline(intercept = 0, slope = 1, color = "blue") +
   geom_smooth(aes(x = pred, y = varroa), method = "lm", color = "red", se = FALSE)
 # Error distribution
-qplot(test_predictions - test_labels$varroa_per_300_bees1, geom = "density")
+qplot(acoustic_test_predictions - acoustic_test_labels$varroa_per_300_bees1, geom = "density")
