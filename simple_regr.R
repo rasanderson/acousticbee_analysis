@@ -1,0 +1,64 @@
+# Simple regression-based deep learning model
+# See https://tensorflow.rstudio.com/tutorials/keras/regression#regression-with-a-deep-neural-network-dnn
+
+rm(list = ls())
+
+library(ggplot2)
+library(dplyr)
+library(lubridate)
+library(tidyr)
+
+# Read in and pre-process data ####
+rawd <- read.csv("data/All_Data_Master_Shortened.csv")
+# Three rows with missing values causing trouble need removing
+rawd <- rawd[!is.na(rawd$ACI),]
+rawd$timestamp    <- ymd_hms(rawd$timestamp)
+rawd$date         <- ymd(rawd$date)
+rawd$time         <- hms(rawd$time)
+rawd$colony       <- as.factor(rawd$colony)
+rawd$cbpv_status  <- as.factor(rawd$cbpv_status)
+rawd$cbpv_status1 <- as.factor(rawd$cbpv_status1)
+# CBPV coded None, Unsure, Low, Medium, Very High
+rawd$cbpv_status  <- ordered(rawd$cbpv_status, levels = c("N", "US", "L", "M", "VH"))
+rawd$cbpv_status1  <- ordered(rawd$cbpv_status1, levels = c("N", "US", "L", "M", "VH"))
+data_subset <- filter(rawd, date <= "2022-08-31")
+data_subset$day_of_year <- yday(data_subset$date)
+data_subset$cos_hour <- cos((2 * pi * data_subset$hour ) / 24)
+data_subset$sin_hour <- sin((2 * pi * data_subset$hour ) / 24)
+
+# Begin with just the "meta-data" about the environment ####
+# Work on the Varroa as more variable response
+# However, no records at Thorganby as not assessed. Remove missing values.
+# Note there are 175 NA for station_easting/northing, but 320 for grid_easting/n
+data_subset <- filter(data_subset, site != "Thorganby") %>% 
+  drop_na(grid_easting) %>% 
+  drop_na(grid_northing) %>% 
+  drop_na(rain_mm_h_mean) %>% 
+  drop_na(windsp) %>% 
+  drop_na(temperature)
+
+meta_variables <- c("varroa_per_300_bees1", "day_of_year", "cos_hour", "sin_hour",
+                    "grid_easting", "grid_northing", "rain_mm_h_mean", "windsp",
+                    "temperature")
+meta_subset <- select(data_subset, all_of(meta_variables))
+library(keras)
+library(rsample)
+split <- initial_split(meta_subset, 0.8)
+train_dataset <- training(split)
+test_dataset <- testing(split)
+# # Smoothed freq histograms and scatterplots (slow)
+# train_dataset %>%
+#   select(day_of_year, cos_hour, sin_hour, temperature) %>%
+#   GGally::ggpairs()
+# # Range etc.
+# skimr::skim(meta_subset)
+
+# Now split features from labels
+train_features <- train_dataset %>% select(-varroa_per_300_bees1)
+test_features <- test_dataset %>% select(-varroa_per_300_bees1)
+
+train_labels <- train_dataset %>% select(varroa_per_300_bees1)
+test_labels <- test_dataset %>% select(varroa_per_300_bees1)
+
+# Normalise the data
+normalizer <- layer_normalization(axis = -1L)
