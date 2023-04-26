@@ -116,3 +116,88 @@ ggplot(data.frame(pred = as.numeric(test_predictions), varroa = test_labels$varr
 # Error distribution
 qplot(test_predictions - test_labels$varroa_per_300_bees1, geom = "density")
 
+
+
+# Deep learning model for acoustic indices ####
+acoustic_variables <- c("varroa_per_300_bees1", "ACI", "RMS", "H", "mean_dfreq",
+                        "M", "Ht", "freq_mean", "sd", "freq_median", "sem",
+                        "freq_mode", "Q25", "Q75", "IQR", "cent", "skewness",
+                        "kurtosis", "sfm", "sh", "prec", "time.P1", "time.M",
+                        "time.P2", "time.IPR", "freq.P1", "freq.M", "freq.P2",
+                        "freq.IPR")
+acoustic_subset <- select(data_subset, all_of(acoustic_variables))
+library(keras)
+library(rsample)
+split <- initial_split(acoustic_subset, 0.8)
+train_dataset <- training(split)
+test_dataset <- testing(split)
+# # Smoothed freq histograms and scatterplots (slow)
+# train_dataset %>%
+#   select(day_of_year, cos_hour, sin_hour, temperature) %>%
+#   GGally::ggpairs()
+# # Range etc.
+# skimr::skim(meta_subset)
+
+# Now split features from labels
+train_features <- train_dataset %>% select(-varroa_per_300_bees1)
+test_features <- test_dataset %>% select(-varroa_per_300_bees1)
+
+train_labels <- train_dataset %>% select(varroa_per_300_bees1)
+test_labels <- test_dataset %>% select(varroa_per_300_bees1)
+
+# Normalise the data
+normalizer <- layer_normalization(axis = -1L)
+# The adapt() function fits the state of the normalized data and fixes it so
+# it doesn't change subsequently
+normalizer %>% adapt(as.matrix(train_features))
+print(normalizer$mean)
+first <- as.matrix(train_features[1,])
+cat('First example:', first)
+cat('Normalized:', as.matrix(normalizer(first)))
+
+# As relatively simple, use a single function to define and compile model
+build_and_compile_model <- function(norm) {
+  model <- keras_model_sequential() %>%
+    norm() %>%
+    layer_dense(64, activation = 'relu') %>%
+    layer_dense(64, activation = 'relu') %>%
+    layer_dense(64, activation = 'relu') %>%
+    layer_dense(1)
+  
+  model %>% compile(
+    metrics = list("accuracy"),
+    loss = 'mean_absolute_error',
+    optimizer = optimizer_adam(0.001)
+  )
+  
+  model
+}
+
+# Apply to normalized data
+dnn_model <- build_and_compile_model(normalizer)
+summary(dnn_model)
+# Now the slow bit. Overtraining after about 20 epochs
+history <- dnn_model %>% fit(
+  as.matrix(train_features),
+  as.matrix(train_labels),
+  validation_split = 0.2,
+  verbose = 1,
+  epochs = 100
+)
+plot(history)
+# Results on test dataset
+test_results <- list()
+test_results[['dnn_model']] <- dnn_model %>% evaluate(
+  as.matrix(test_features),
+  as.matrix(test_labels),
+  verbose = 0
+)
+sapply(test_results, function(x) x)
+# Make some predictions
+test_predictions <- predict(dnn_model, as.matrix(test_features))
+ggplot(data.frame(pred = as.numeric(test_predictions), varroa = test_labels$varroa_per_300_bees1)) +
+  geom_point(aes(x = pred, y = varroa)) +
+  geom_abline(intercept = 0, slope = 1, color = "blue") +
+  geom_smooth(aes(x = pred, y = varroa), method = "lm", color = "red", se = FALSE)
+# Error distribution
+qplot(test_predictions - test_labels$varroa_per_300_bees1, geom = "density")
