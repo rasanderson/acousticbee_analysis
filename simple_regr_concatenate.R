@@ -150,24 +150,29 @@ combined_dnn_history <- combined_dnn %>% fit(
   verbose = 1,
   epochs = 50
 )
-
-
 plot(combined_dnn_history)
+
+
 # Results on test dataset
+# labels are identical for meta- and acoustic test datasets
+combined_test_labels <- acoustic_test_labels
+
 combined_test_results <- list()
 combined_test_results[['dnn_model']] <- combined_dnn %>% evaluate(
-  list(as.matrix(meta_test_features), as.matrix(acoustic_test_features)),
-  as.matrix(acoustic_test_labels),
+  x = list(as.matrix(scale(meta_test_features)), as.matrix(scale(acoustic_test_features))),
+  y = as.matrix(combined_test_labels),
   verbose = 1
 )
 
 
 sapply(combined_test_results, function(x) x)
 # Make some predictions
-acoustic_test_predictions <- predict(combined_dnn, list(as.matrix(meta_test_features), as.matrix(acoustic_test_features)))
-ggplot(data.frame(pred = as.numeric(acoustic_test_predictions), varroa = acoustic_test_labels$varroa_per_300_bees1)) +
+combined_test_predictions <- predict(combined_dnn, list(as.matrix(scale(meta_test_features)), as.matrix(scale(acoustic_test_features))))
+test_obs_preds <- data.frame(pred = as.numeric(combined_test_predictions), varroa = combined_test_labels$varroa_per_300_bees1)
+ggplot(test_obs_preds) +
   geom_point(aes(x = pred, y = varroa)) +
   geom_abline(intercept = 0, slope = 1, color = "blue") +
   geom_smooth(aes(x = pred, y = varroa), method = "lm", color = "red", se = FALSE)
 # Error distribution
-qplot(acoustic_test_predictions - acoustic_test_labels$varroa_per_300_bees1, geom = "density")
+ggplot(test_obs_preds, aes(x = pred - varroa)) +
+  geom_density()
