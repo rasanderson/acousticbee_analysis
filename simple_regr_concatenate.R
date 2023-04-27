@@ -77,26 +77,23 @@ cat('First example:', first)
 cat('Normalized:', as.matrix(meta_normalizer(first)))
 
 # As relatively simple, use a single function to define and compile model
-build_and_compile_model <- function(norm) {
-  model <- keras_model_sequential() %>%
-    norm() %>%
+meta_dnn_model <- keras_model_sequential() %>%
+    meta_normalizer() %>%
     layer_dense(64, activation = 'relu') %>%
     layer_dense(64, activation = 'relu') %>%
     layer_dense(64, activation = 'relu') %>%
     layer_dense(1)
   
-  model %>% compile(
+meta_dnn_model %>% compile(
     metrics = list("accuracy"),
     loss = 'mean_absolute_error',
     optimizer = optimizer_adam(0.001)
   )
-  
-  model
-}
 
-# Apply to normalized data
-meta_dnn_model <- build_and_compile_model(meta_normalizer)
+# Summarise meta_dnn_model
 summary(meta_dnn_model)
+plot(meta_dnn_model)
+
 # Now the slow bit. Overtraining after about 20 epochs
 meta_history <- meta_dnn_model %>% fit(
   as.matrix(meta_train_features),
@@ -159,26 +156,24 @@ cat('First example:', first)
 cat('Normalized:', as.matrix(acoustic_normalizer(first)))
 
 # As relatively simple, use a single function to define and compile model
-build_and_compile_model <- function(norm) {
-  model <- keras_model_sequential() %>%
-    norm() %>%
+acoustic_dnn_model <- keras_model_sequential() %>%
+    acoustic_normalizer() %>%
     layer_dense(64, activation = 'relu') %>%
     layer_dense(64, activation = 'relu') %>%
     layer_dense(64, activation = 'relu') %>%
     layer_dense(1)
   
-  model %>% compile(
+acoustic_dnn_model %>% compile(
     metrics = list("accuracy"),
     loss = 'mean_absolute_error',
     optimizer = optimizer_adam(0.001)
   )
   
-  model
-}
 
-# Apply to normalized data
-acoustic_dnn_model <- build_and_compile_model(acoustic_normalizer)
+# Summarise acoustic_dnn_model
 summary(acoustic_dnn_model)
+plot(acoustic_dnn_model)
+
 # Now the slow bit. Overtraining after about 20 epochs
 acoustic_history <- acoustic_dnn_model %>% fit(
   as.matrix(acoustic_train_features),
