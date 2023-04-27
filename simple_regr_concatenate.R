@@ -111,10 +111,12 @@ meta_train_features_scale     <- scale(meta_train_features)
 
 # As relatively simple, use a single function to define and compile model
 meta_dnn_model <- layer_input(shape = 10, name = "meta_dnn") %>% 
+  layer_dense(10, activation = 'relu', name = "meta1") %>% 
   layer_dense(10, activation = 'relu', name = "meta1") 
 
 # As relatively simple, use a single function to define and compile model
 acoustic_dnn_model <- layer_input(shape = 28, name = "acoustic_dnn") %>%
+    layer_dense(28, activation = 'relu', name = "acoustic1") %>% 
     layer_dense(28, activation = 'relu', name = "acoustic1") 
 
 merge_inputs <-
@@ -130,9 +132,8 @@ combined_dnn <- keras_model(
 )
 
 combined_dnn %>% compile(
-  #metrics = list("accuracy"),
   loss = 'mean_absolute_error',
-  optimizer = optimizer_adam(0.001)
+  optimizer = optimizer_adam(0.001),
 )
 
 summary(combined_dnn)
@@ -142,7 +143,7 @@ plot(combined_dnn, show_shapes = TRUE, show_layer_names = TRUE, expand_nested = 
 output_targets <- acoustic_train_labels
 
 # Now fit the combined model
-meta_history <- combined_dnn %>% fit(
+combined_dnn_history <- combined_dnn %>% fit(
   x = list(as.matrix(meta_train_features_scale), as.matrix(acoustic_train_features_scale)),
   y = list(output_targets),
   validation_split = 0.2,
@@ -151,39 +152,22 @@ meta_history <- combined_dnn %>% fit(
 )
 
 
-# acoustic_dnn_model %>% compile(
-#     metrics = list("accuracy"),
-#     loss = 'mean_absolute_error',
-#     optimizer = optimizer_adam(0.001)
-#   )
-#   
-# 
-# # Summarise acoustic_dnn_model
-# summary(acoustic_dnn_model)
-# plot(acoustic_dnn_model)
-# 
-# # Now the slow bit. Overtraining after about 20 epochs
-# acoustic_history <- acoustic_dnn_model %>% fit(
-#   as.matrix(acoustic_train_features),
-#   as.matrix(acoustic_train_labels),
-#   validation_split = 0.2,
-#   verbose = 1,
-#   epochs = 25
-# )
-# plot(acoustic_history)
-# # Results on test dataset
-# acoustic_test_results <- list()
-# acoustic_test_results[['dnn_model']] <- acoustic_dnn_model %>% evaluate(
-#   as.matrix(acoustic_test_features),
-#   as.matrix(acoustic_test_labels),
-#   verbose = 0
-# )
-# sapply(acoustic_test_results, function(x) x)
-# # Make some predictions
-# acoustic_test_predictions <- predict(acoustic_dnn_model, as.matrix(acoustic_test_features))
-# ggplot(data.frame(pred = as.numeric(acoustic_test_predictions), varroa = acoustic_test_labels$varroa_per_300_bees1)) +
-#   geom_point(aes(x = pred, y = varroa)) +
-#   geom_abline(intercept = 0, slope = 1, color = "blue") +
-#   geom_smooth(aes(x = pred, y = varroa), method = "lm", color = "red", se = FALSE)
-# # Error distribution
-# qplot(acoustic_test_predictions - acoustic_test_labels$varroa_per_300_bees1, geom = "density")
+plot(combined_dnn_history)
+# Results on test dataset
+combined_test_results <- list()
+combined_test_results[['dnn_model']] <- combined_dnn %>% evaluate(
+  list(as.matrix(meta_test_features), as.matrix(acoustic_test_features)),
+  as.matrix(acoustic_test_labels),
+  verbose = 1
+)
+
+
+sapply(combined_test_results, function(x) x)
+# Make some predictions
+acoustic_test_predictions <- predict(combined_dnn, list(as.matrix(meta_test_features), as.matrix(acoustic_test_features)))
+ggplot(data.frame(pred = as.numeric(acoustic_test_predictions), varroa = acoustic_test_labels$varroa_per_300_bees1)) +
+  geom_point(aes(x = pred, y = varroa)) +
+  geom_abline(intercept = 0, slope = 1, color = "blue") +
+  geom_smooth(aes(x = pred, y = varroa), method = "lm", color = "red", se = FALSE)
+# Error distribution
+qplot(acoustic_test_predictions - acoustic_test_labels$varroa_per_300_bees1, geom = "density")
