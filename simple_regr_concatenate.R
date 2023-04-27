@@ -77,48 +77,46 @@ cat('First example:', first)
 cat('Normalized:', as.matrix(meta_normalizer(first)))
 
 # As relatively simple, use a single function to define and compile model
-meta_dnn_model <- keras_model_sequential() %>%
-    meta_normalizer() %>%
+meta_dnn_model <- layer_input(shape = 10) %>% 
+    meta_normalizer() %>% 
     layer_dense(64, activation = 'relu') %>%
-    layer_dense(64, activation = 'relu') %>%
-    layer_dense(64, activation = 'relu') %>%
-    layer_dense(1)
-  
-meta_dnn_model %>% compile(
-    metrics = list("accuracy"),
-    loss = 'mean_absolute_error',
-    optimizer = optimizer_adam(0.001)
-  )
+    layer_dense(64, activation = 'relu') 
 
-# Summarise meta_dnn_model
-summary(meta_dnn_model)
-plot(meta_dnn_model)
-
-# Now the slow bit. Overtraining after about 20 epochs
-meta_history <- meta_dnn_model %>% fit(
-  as.matrix(meta_train_features),
-  as.matrix(meta_train_labels),
-  validation_split = 0.2,
-  verbose = 1,
-  epochs = 50
-)
-plot(meta_history)
-# Results on test dataset
-meta_test_results <- list()
-meta_test_results[['dnn_model']] <- meta_dnn_model %>% evaluate(
-  as.matrix(meta_test_features),
-  as.matrix(meta_test_labels),
-  verbose = 0
-)
-sapply(meta_test_results, function(x) x)
-# Make some predictions
-meta_test_predictions <- predict(meta_dnn_model, as.matrix(meta_test_features))
-ggplot(data.frame(pred = as.numeric(meta_test_predictions), varroa = meta_test_labels$varroa_per_300_bees1)) +
-  geom_point(aes(x = pred, y = varroa)) +
-  geom_abline(intercept = 0, slope = 1, color = "blue") +
-  geom_smooth(aes(x = pred, y = varroa), method = "lm", color = "red", se = FALSE)
-# Error distribution
-qplot(meta_test_predictions - meta_test_labels$varroa_per_300_bees1, geom = "density")
+# meta_dnn_model %>% compile(
+#     metrics = list("accuracy"),
+#     loss = 'mean_absolute_error',
+#     optimizer = optimizer_adam(0.001)
+#   )
+# 
+# # Summarise meta_dnn_model
+# summary(meta_dnn_model)
+# plot(meta_dnn_model)
+# 
+# # Now the slow bit. Overtraining after about 20 epochs
+# meta_history <- meta_dnn_model %>% fit(
+#   as.matrix(meta_train_features),
+#   as.matrix(meta_train_labels),
+#   validation_split = 0.2,
+#   verbose = 1,
+#   epochs = 50
+# )
+# plot(meta_history)
+# # Results on test dataset
+# meta_test_results <- list()
+# meta_test_results[['dnn_model']] <- meta_dnn_model %>% evaluate(
+#   as.matrix(meta_test_features),
+#   as.matrix(meta_test_labels),
+#   verbose = 0
+# )
+# sapply(meta_test_results, function(x) x)
+# # Make some predictions
+# meta_test_predictions <- predict(meta_dnn_model, as.matrix(meta_test_features))
+# ggplot(data.frame(pred = as.numeric(meta_test_predictions), varroa = meta_test_labels$varroa_per_300_bees1)) +
+#   geom_point(aes(x = pred, y = varroa)) +
+#   geom_abline(intercept = 0, slope = 1, color = "blue") +
+#   geom_smooth(aes(x = pred, y = varroa), method = "lm", color = "red", se = FALSE)
+# # Error distribution
+# qplot(meta_test_predictions - meta_test_labels$varroa_per_300_bees1, geom = "density")
 
 
 
@@ -156,46 +154,78 @@ cat('First example:', first)
 cat('Normalized:', as.matrix(acoustic_normalizer(first)))
 
 # As relatively simple, use a single function to define and compile model
-acoustic_dnn_model <- keras_model_sequential() %>%
+acoustic_dnn_model <- layer_input(shape = 28) %>%
     acoustic_normalizer() %>%
     layer_dense(64, activation = 'relu') %>%
-    layer_dense(64, activation = 'relu') %>%
-    layer_dense(64, activation = 'relu') %>%
-    layer_dense(1)
-  
-acoustic_dnn_model %>% compile(
-    metrics = list("accuracy"),
-    loss = 'mean_absolute_error',
-    optimizer = optimizer_adam(0.001)
-  )
-  
+    layer_dense(64, activation = 'relu') 
 
-# Summarise acoustic_dnn_model
-summary(acoustic_dnn_model)
-plot(acoustic_dnn_model)
+merge_inputs <-
+  layer_concatenate(list(meta_dnn_model, acoustic_dnn_model)) %>% 
+  layer_dense(64, activation = 'relu')
 
-# Now the slow bit. Overtraining after about 20 epochs
-acoustic_history <- acoustic_dnn_model %>% fit(
-  as.matrix(acoustic_train_features),
-  as.matrix(acoustic_train_labels),
+merge_outputs <- merge_inputs %>% 
+  layer_dense(1)
+
+combined_dnn <- keras_model(
+  inputs = list(meta_dnn_model, acoustic_dnn_model),
+  outputs = merge_outputs
+)
+
+combined_dnn %>% compile(
+  metrics = list("accuracy"),
+  loss = 'mean_absolute_error',
+  optimizer = optimizer_adam(0.001)
+)
+
+summary(combined_dnn)
+plot(combined_dnn, show_shapes = TRUE)
+
+# Outputs for target are same for both meta- and acoustic- datasets
+output_targets <- acoustic_train_labels
+
+# Now fit the combined model
+meta_history <- combined_dnn %>% fit(
+  x = list(as.matrix(meta_train_features), as.matrix(meta_train_labels)),
+  y = list(output_targets),
   validation_split = 0.2,
   verbose = 1,
-  epochs = 25
+  epochs = 50
 )
-plot(acoustic_history)
-# Results on test dataset
-acoustic_test_results <- list()
-acoustic_test_results[['dnn_model']] <- acoustic_dnn_model %>% evaluate(
-  as.matrix(acoustic_test_features),
-  as.matrix(acoustic_test_labels),
-  verbose = 0
-)
-sapply(acoustic_test_results, function(x) x)
-# Make some predictions
-acoustic_test_predictions <- predict(acoustic_dnn_model, as.matrix(acoustic_test_features))
-ggplot(data.frame(pred = as.numeric(acoustic_test_predictions), varroa = acoustic_test_labels$varroa_per_300_bees1)) +
-  geom_point(aes(x = pred, y = varroa)) +
-  geom_abline(intercept = 0, slope = 1, color = "blue") +
-  geom_smooth(aes(x = pred, y = varroa), method = "lm", color = "red", se = FALSE)
-# Error distribution
-qplot(acoustic_test_predictions - acoustic_test_labels$varroa_per_300_bees1, geom = "density")
+
+
+# acoustic_dnn_model %>% compile(
+#     metrics = list("accuracy"),
+#     loss = 'mean_absolute_error',
+#     optimizer = optimizer_adam(0.001)
+#   )
+#   
+# 
+# # Summarise acoustic_dnn_model
+# summary(acoustic_dnn_model)
+# plot(acoustic_dnn_model)
+# 
+# # Now the slow bit. Overtraining after about 20 epochs
+# acoustic_history <- acoustic_dnn_model %>% fit(
+#   as.matrix(acoustic_train_features),
+#   as.matrix(acoustic_train_labels),
+#   validation_split = 0.2,
+#   verbose = 1,
+#   epochs = 25
+# )
+# plot(acoustic_history)
+# # Results on test dataset
+# acoustic_test_results <- list()
+# acoustic_test_results[['dnn_model']] <- acoustic_dnn_model %>% evaluate(
+#   as.matrix(acoustic_test_features),
+#   as.matrix(acoustic_test_labels),
+#   verbose = 0
+# )
+# sapply(acoustic_test_results, function(x) x)
+# # Make some predictions
+# acoustic_test_predictions <- predict(acoustic_dnn_model, as.matrix(acoustic_test_features))
+# ggplot(data.frame(pred = as.numeric(acoustic_test_predictions), varroa = acoustic_test_labels$varroa_per_300_bees1)) +
+#   geom_point(aes(x = pred, y = varroa)) +
+#   geom_abline(intercept = 0, slope = 1, color = "blue") +
+#   geom_smooth(aes(x = pred, y = varroa), method = "lm", color = "red", se = FALSE)
+# # Error distribution
+# qplot(acoustic_test_predictions - acoustic_test_labels$varroa_per_300_bees1, geom = "density")
