@@ -9,6 +9,7 @@ library(dplyr)
 library(lubridate)
 library(tidyr)
 
+
 # Read in and pre-process data ####
 rawd <- read.csv("data/All_Data_Master_Shortened.csv")
 # Three rows with missing values causing trouble need removing
@@ -43,6 +44,10 @@ data_subset <- filter(data_subset, site != "Thorganby") %>%
 # Split data first, so meta- and audio- using same data points
 library(keras)
 library(rsample)
+# Add random seed. Tricky to evaluate which changes are random vs which due
+# to model structure in some setups
+set_random_seed(123)
+
 split <- initial_split(data_subset, 0.8)
 split_train_dataset <- training(split)
 split_test_dataset <- testing(split)
@@ -123,7 +128,7 @@ acoustic_dnn_model <- layer_input(shape = 28, name = "acoustic_dnn") %>%
 
 merge_inputs <-
   layer_concatenate(list(meta_dnn_model, acoustic_dnn_model), name = "conc") %>% 
-  layer_dropout(0.25) %>% 
+  #layer_dropout(0.25) %>% 
   layer_dense(38, activation = 'relu', name = "conc_dense")
 
 merge_outputs <- merge_inputs %>% 
@@ -179,3 +184,4 @@ ggplot(test_obs_preds) +
 # Error distribution
 ggplot(test_obs_preds, aes(x = pred - varroa)) +
   geom_density()
+cor(test_obs_preds)^2
