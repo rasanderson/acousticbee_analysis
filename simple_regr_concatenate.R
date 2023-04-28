@@ -38,7 +38,7 @@ data_subset <- filter(data_subset, site != "Thorganby") %>%
   drop_na(grid_northing) %>% 
   drop_na(rain_mm_h_mean) %>% 
   drop_na(windsp) %>% 
-  drop_na(temperature)
+  drop_na(temperature) 
 
 # Split data first, so meta- and audio- using same data points
 library(keras)
@@ -111,16 +111,19 @@ meta_train_features_scale     <- scale(meta_train_features)
 
 # As relatively simple, use a single function to define and compile model
 meta_dnn_model <- layer_input(shape = 10, name = "meta_dnn") %>% 
-  layer_dense(10, activation = 'relu', name = "meta1") %>% 
+  layer_dense(64, activation = 'relu', name = "meta1") %>% 
+  layer_dropout(0.25) %>% 
   layer_dense(10, activation = 'relu', name = "meta1") 
 
 # As relatively simple, use a single function to define and compile model
 acoustic_dnn_model <- layer_input(shape = 28, name = "acoustic_dnn") %>%
-    layer_dense(28, activation = 'relu', name = "acoustic1") %>% 
+    layer_dense(64, activation = 'relu', name = "acoustic1") %>% 
+    layer_dropout(0.25) %>% 
     layer_dense(28, activation = 'relu', name = "acoustic1") 
 
 merge_inputs <-
   layer_concatenate(list(meta_dnn_model, acoustic_dnn_model), name = "conc") %>% 
+  layer_dropout(0.25) %>% 
   layer_dense(38, activation = 'relu', name = "conc_dense")
 
 merge_outputs <- merge_inputs %>% 
