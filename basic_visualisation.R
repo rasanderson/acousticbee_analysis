@@ -131,6 +131,7 @@ detach("package:vegan", unload = TRUE)
 # Compare some of disease levels over time ----
 ggplot(tmp, aes(x=date, y=varroa_per_300_bees1, colour=colony)) +
   geom_point() +
+  geom_smooth(se=FALSE) +
   facet_wrap(~site)
 ggplot(tmp, aes(x=date, y=cbpv_status1, colour=colony)) +
   geom_point() +
@@ -283,3 +284,53 @@ ggplot(tmp, aes(x = temperature, y = freq_mode, colour = colony)) +
 ggplot(tmp, aes(x = windsp, y = freq_mode, colour = colony)) +
   geom_point() +
   facet_wrap(~site)
+
+
+# Comparison of the 4 different times of day ----
+ggplot(tmp, aes(x = date, y = ACI, colour = as.factor(hour))) +
+  geom_smooth(se=FALSE) +
+  ylab("ACI acoustic complexity index") +
+  theme_classic() +
+  facet_wrap(~site)
+ggplot(tmp, aes(x = date, y = RMS, colour = as.factor(hour))) +
+  geom_smooth(se=FALSE) +
+  ylab("Acoustic root mean square") +
+  theme_classic() +
+  facet_wrap(~site)
+ggplot(tmp, aes(x = date, y = H, colour = as.factor(hour))) +
+  geom_smooth(se=FALSE) +
+  ylab("Shannon diversity") +
+  theme_classic() +
+  facet_wrap(~site)
+ggplot(tmp, aes(x = date, y = mean_dfreq, colour = as.factor(hour))) +
+  geom_smooth(se=FALSE) +
+  theme_classic() +
+  facet_wrap(~site)
+ggplot(tmp, aes(x = date, y = M, colour = as.factor(hour))) +
+  geom_smooth(se=FALSE) +
+  ylab("Median amplitude envelope") +
+  theme_classic() +
+  facet_wrap(~site)
+ggplot(tmp, aes(x = date, y = Ht, colour = as.factor(hour))) +
+  geom_smooth(se=FALSE) +
+  ylab("Acoustic evenness") +
+  theme_classic() +
+  facet_wrap(~site)
+tmp4 <- cbind(tmp, acoustic_sco)
+ggplot(tmp4, aes(x = date, y = PC1, colour = as.factor(hour))) +
+  geom_smooth(se=TRUE) +
+  ylab("PC1 score of acoustic indices (58.8%)") +
+  theme_classic() +
+  facet_wrap(~site)
+ggplot(tmp4, aes(x = date, y = PC2, colour = as.factor(hour))) +
+  geom_smooth(se=FALSE) +
+  ylab("PC2 score of acoustic indices (31.6%)") +
+  theme_classic() +
+  facet_wrap(~site)
+# Selby colony 6 has weight data
+tmp5 <- filter(tmp4, colony == 6)
+
+ggplot(tmp5, aes(x = date, y = PC1, colour = as.factor(hour))) +
+  geom_smooth(se=TRUE) +
+  ylab("PC1 score of acoustic indices (58.8%)") +
+  theme_classic()
