@@ -21,6 +21,7 @@ rawd$cbpv_status1  <- ordered(rawd$cbpv_status1, levels = c("N", "US", "L", "M",
 
 tmp <- filter(rawd, date <= "2022-08-31")
 
+# Acoustic indices with date ----
 ggplot(tmp, aes(x=date, y=ACI, colour=colony)) + # Acoustic complexity index
   geom_point() +
   facet_wrap(~site)
@@ -106,7 +107,7 @@ ggplot(tmp, aes(x=date, y=freq.IPR, colour=colony)) + # STFT frequency inter-per
   geom_point() +
   facet_wrap(~site)
 
-# Check acoustic measures in a PCA out of curiosity
+# Check acoustic measures in a PCA out of curiosity ----
 library(vegan)
 tmp2 <- tmp[, 14:41]
 tmp2 <- decostand(tmp2, method = "hellinger")
@@ -127,14 +128,15 @@ ggplot(tmp, aes(x=date, y=acoustic_sco$PC2, colour=colony)) +
   facet_wrap(~site)
 detach("package:vegan", unload = TRUE)
 
-# Compare some of disease levels over time
+# Compare some of disease levels over time ----
 ggplot(tmp, aes(x=date, y=varroa_per_300_bees1, colour=colony)) +
   geom_point() +
   facet_wrap(~site)
 ggplot(tmp, aes(x=date, y=cbpv_status1, colour=colony)) +
   geom_point() +
   facet_wrap(~site)
-# And by disease severity with acoustics
+
+# And by disease severity with acoustics ----
 ggplot(tmp, aes(x = varroa_per_300_bees1, y = acoustic_sco$PC1, colour=colony)) +
   geom_point() +
   facet_wrap(~site)
@@ -147,7 +149,8 @@ ggplot(tmp, aes(x = cbpv_status1, y = acoustic_sco$PC1, colour=colony)) +
 ggplot(tmp, aes(x = cbpv_status1, y = acoustic_sco$PC2, colour=colony)) +
   geom_boxplot() +
   facet_wrap(~site)
-# Some individual acoustics with disease
+
+# Some individual acoustics with disease ----
 ggplot(tmp, aes(x = varroa_per_300_bees1, y = ACI, colour=colony)) +
   geom_point() +
   facet_wrap(~site)
@@ -232,7 +235,7 @@ ggplot(tmp, aes(x = varroa_per_300_bees1, y = freq.P2, colour=colony)) +
 ggplot(tmp, aes(x = varroa_per_300_bees1, y = freq.IPR, colour=colony)) +
   geom_point() +
   facet_wrap(~site)
-# Less easy to interpret boxplots
+# Less easy to interpret boxplots ----
 ggplot(tmp, aes(x = cbpv_status1, y = freq_mode, colour=colony)) +
   geom_boxplot() +
   facet_wrap(~site)
@@ -243,13 +246,13 @@ ggplot(tmp, aes(x = cbpv_status1, y = freq.IPR, colour=colony)) +
   geom_boxplot() +
   facet_wrap(~site)
 
-# A few correlations of acoustic stuff
+# A few correlations of acoustic stuff ----
 tmp3 <- cbind(tmp2, acoustic_sco)
 library(ggcorrplot)
 corr <- cor(tmp3)
 ggcorrplot(corr, hc.order = TRUE)
 
-# Weather over time
+# Weather over time ----
 ggplot(tmp, aes(x = date, y = temperature)) +
   geom_point() +
   geom_smooth() +
@@ -264,14 +267,14 @@ ggplot(tmp, aes(x = date, y = rain_mm_h_mean)) +
   facet_wrap(~site)
 
 
-# Some comparisons of acoustics with weather
+# Some comparisons of acoustics with weather ----
 ggplot(tmp, aes(x = temperature, y = ACI, colour = colony)) +
   geom_point() +
   facet_wrap(~site)
 ggplot(tmp, aes(x = windsp, y = ACI, colour = colony)) +
   geom_point() +
   facet_wrap(~site)
-ggplot(tmp4, aes(x = rain_mm_h_mean, y = mean_dfreq, colour = colony)) +
+ggplot(tmp, aes(x = rain_mm_h_mean, y = mean_dfreq, colour = colony)) +
   geom_point() +
   facet_wrap(~site)
 ggplot(tmp, aes(x = temperature, y = freq_mode, colour = colony)) +
