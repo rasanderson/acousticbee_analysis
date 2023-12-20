@@ -390,9 +390,13 @@ selby_test <- data.frame(cbind(selby_test),
 selby_pred <- predict(selby_omit_glm, newdata = selby_test, type = "response")
 selby_test <- cbind(selby_test, selby_pred)
 p1 <- ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
-  geom_smooth() 
+  geom_smooth() +
+  geom_point() +
+  scale_y_continuous(limits = c(0, NA))
 p2 <- ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
-  geom_smooth() 
+  geom_smooth() +
+  geom_point() +
+  scale_y_continuous(limits = c(0, NA))
 grid.arrange(p1, p2, nrow = 1)
 selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
 summary(selby_obs_pred_lm)
@@ -437,9 +441,13 @@ hexham_pred <- predict(selby_lead_glm, newdata = hexham_lead, type = "response")
 
 hexham_lead <- cbind(hexham_lead, hexham_pred)
 p1 <- ggplot(hexham_lead, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
-  geom_smooth() 
+  geom_smooth() +
+  geom_point() +
+  scale_y_continuous(limits = c(0, NA))
 p2 <- ggplot(hexham_lead, aes(x = date, y = exp(hexham_pred)-1, colour = colony)) +
-  geom_smooth() 
+  geom_smooth() +
+  geom_point() + 
+  scale_y_continuous(limits = c(0, NA))
 grid.arrange(p1, p2, nrow = 1)
 hexham_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(hexham_pred)-1), data = hexham_lead)
 summary(hexham_obs_pred_lm)
