@@ -1,5 +1,6 @@
 # Selby statistical modelling approach
 # 
+# Initial setup ----
 rm(list = ls())
 
 library(ggplot2)
@@ -7,6 +8,8 @@ library(dplyr)
 library(lubridate)
 library(DHARMa)
 library(glmmTMB)
+library(gridExtra)
+library(MuMIn)
 
 rawd <- read.csv("data/All_Data_Master_Shortened.csv")
 # Three rows with missing values causing trouble need removing
@@ -113,10 +116,17 @@ hexham_dat <- data.frame(cbind(hexham_dat), sin_hr, cos_hr,
 hexham_pred <- predict(selby_glm4a, newdata = hexham_dat, type = "response")
 
 hexham_dat <- cbind(hexham_dat, hexham_pred)
-ggplot(hexham_dat, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
+p1 <- ggplot(hexham_dat, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
   geom_smooth() 
-ggplot(hexham_dat, aes(x = date, y = exp(hexham_pred)-1, colour = colony)) +
+p2 <- ggplot(hexham_dat, aes(x = date, y = exp(hexham_pred)-1, colour = colony)) +
   geom_smooth() 
+grid.arrange(p1, p2, nrow = 1)
+hexham_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(hexham_pred)-1), data = hexham_dat)
+summary(hexham_obs_pred_lm)
+hexham_obs_pred_lme <- lme(log(varroa_per_300_bees1 + 1) ~ I(exp(hexham_pred)-1),
+                           random = ~1|colony, data = hexham_dat)
+summary(hexham_obs_pred_lme)
+r.squaredLR(hexham_obs_pred_lme)
 
 # Try creating model for 3 out of 4 Selby nests ----
 selby_dat <- mutate(selby_dat, PC1 = NULL, PC2 = NULL)
@@ -142,10 +152,11 @@ selby_test <- data.frame(cbind(selby_test),
 selby_pred <- predict(selby_omit_glm, newdata = selby_test, type = "response")
 
 selby_test <- cbind(selby_test, selby_pred)
-ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
+p1 <- ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
   geom_smooth() 
-ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
+p2 <- ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
   geom_smooth() 
+grid.arrange(p1, p2, nrow = 1)
 selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
 summary(selby_obs_pred_lm)
 ## Omit Selby 4 ----
@@ -170,10 +181,11 @@ selby_test <- data.frame(cbind(selby_test),
 selby_pred <- predict(selby_omit_glm, newdata = selby_test, type = "response")
 
 selby_test <- cbind(selby_test, selby_pred)
-ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
+p1 <- ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
   geom_smooth() 
-ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
+p2 <- ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
   geom_smooth() 
+grid.arrange(p1, p2, nrow = 1)
 selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
 summary(selby_obs_pred_lm)
 ## Omit Selby 6 ----
@@ -198,10 +210,11 @@ selby_test <- data.frame(cbind(selby_test),
 selby_pred <- predict(selby_omit_glm, newdata = selby_test, type = "response")
 
 selby_test <- cbind(selby_test, selby_pred)
-ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
+p1 <- ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
   geom_smooth() 
-ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
+p2 <- ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
   geom_smooth() 
+grid.arrange(p1, p2, nrow = 1)
 selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
 summary(selby_obs_pred_lm)
 ## Omit Selby 8
@@ -226,9 +239,10 @@ selby_test <- data.frame(cbind(selby_test),
 selby_pred <- predict(selby_omit_glm, newdata = selby_test, type = "response")
 
 selby_test <- cbind(selby_test, selby_pred)
-ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
+p1 <- ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
   geom_smooth() 
-ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
+p2 <- ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
   geom_smooth() 
+grid.arrange(p1, p2, nrow = 1)
 selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
 summary(selby_obs_pred_lm)
