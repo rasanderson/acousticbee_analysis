@@ -98,7 +98,8 @@ simulateResiduals(selby_glm5, plot=TRUE)
 
 
 # Try testing Selby-derived model glm4a vs Hexham ----
-hexham_dat <- filter(rawd, (date >= "2022-05-25" & date <= "2022-06-21") & site == "Hexham")
+hexham_dat <- filter(rawd, (date >= "2022-05-25" & date <= "2022-06-21") &
+                       site == "Hexham" & cbpv_status1 == "N")
 hexham_dat <- filter(hexham_dat, !is.na(rain_mm_h_mean))
 hexham_dat <- filter(hexham_dat, !is.na(temperature))
 
@@ -250,39 +251,38 @@ summary(selby_obs_pred_lm)
 
 
 # Try a lag model for all 4 Selby colonies ----
+lag_days <- 7
+lag_nos  <- lag_days * 20 # There are 4 sets of 5 records per day
 ## Create lagged datasets
 selby_lead1 <- selby_dat %>% 
   filter(colony == 1) %>% 
-  mutate(lead_varroa = lead(varroa_per_300_bees1, n = 20)) %>% 
+  mutate(lead_varroa = lead(varroa_per_300_bees1, n = lag_nos)) %>% 
   drop_na(lead_varroa)
 selby_lead4 <- selby_dat %>% 
   filter(colony == 4) %>% 
-  mutate(lead_varroa = lead(varroa_per_300_bees1, n = 20)) %>% 
+  mutate(lead_varroa = lead(varroa_per_300_bees1, n = lag_nos)) %>% 
   drop_na(lead_varroa)
 selby_lead6 <- selby_dat %>% 
   filter(colony == 6) %>% 
-  mutate(lead_varroa = lead(varroa_per_300_bees1, n = 20)) %>% 
+  mutate(lead_varroa = lead(varroa_per_300_bees1, n = lag_nos)) %>% 
   drop_na(lead_varroa)
 selby_lead8 <- selby_dat %>% 
   filter(colony == 8) %>% 
-  mutate(lead_varroa = lead(varroa_per_300_bees1, n = 20)) %>% 
+  mutate(lead_varroa = lead(varroa_per_300_bees1, n = lag_nos)) %>% 
   drop_na(lead_varroa)
 selby_lead <- rbind(selby_lead1, selby_lead4, selby_lead6, selby_lead8)
-# Now create selby model with 1 day lag varroa (20 records) ----
-#selby_omit <- filter(selby_dat, colony != 1)
-#selby_test <- filter(selby_dat, colony == 1)
-selby_omit <- selby_lead
-selby_acoustic_omit <- selby_omit[, 14:41]
-selby_acoustic_omit <- decostand(selby_acoustic_omit, method = "hellinger")
-selby_omit_pca <- rda(selby_acoustic_omit)
-plot(selby_omit_pca, display="sites")
-selby_omit_acoustic_sco <- data.frame(scores(selby_omit_pca, display="sites"))
-selby_omit <- data.frame(cbind(selby_omit, selby_omit_acoustic_sco))
-selby_omit_lm <- lm(log(varroa_per_300_bees1+1) ~ sin_day + cos_day + 
+# Now create selby model with various day lag varroa (20 records) ----
+selby_acoustic_lead <- selby_lead[, 14:41]
+selby_acoustic_lead <- decostand(selby_acoustic_lead, method = "hellinger")
+selby_lead_pca <- rda(selby_acoustic_lead)
+plot(selby_lead_pca, display="sites")
+selby_lead_acoustic_sco <- data.frame(scores(selby_lead_pca, display="sites"))
+selby_lead <- data.frame(cbind(selby_lead, selby_lead_acoustic_sco))
+selby_lead_glm <- glm(log(varroa_per_300_bees1+1) ~ sin_day + cos_day + 
                         PC1 + PC2 + rain_mm_h_mean + temperature + windsp +
                         lead_varroa,
-                      data = selby_omit)
-summary(selby_omit_lm)
+                      data = selby_lead)
+summary(selby_lead_glm)
 # Test lagged (lead) model for each Selby colony ----
 ## Lagged Selby1 ----
 selby_omit <- filter(selby_lead, colony != 1)
@@ -293,7 +293,7 @@ selby_omit_pca <- rda(selby_acoustic_omit)
 plot(selby_omit_pca, display="sites")
 selby_omit_acoustic_sco <- data.frame(scores(selby_omit_pca, display="sites"))
 selby_omit <- data.frame(cbind(selby_omit, selby_omit_acoustic_sco))
-selby_omit_lm <- glm(log(varroa_per_300_bees1+1) ~ sin_day + cos_day + 
+selby_omit_glm <- glm(log(varroa_per_300_bees1+1) ~ sin_day + cos_day + 
                       PC1 + PC2 + rain_mm_h_mean + temperature + windsp +
                       lead_varroa,
                     data = selby_omit)
@@ -396,3 +396,55 @@ p2 <- ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) 
 grid.arrange(p1, p2, nrow = 1)
 selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
 summary(selby_obs_pred_lm)
+
+
+# Hexham lagged model ----
+hexham_dat <- filter(rawd, (date >= "2022-05-25" & date <= "2022-06-21") &
+                       site == "Hexham" & cbpv_status1 == "N")
+hexham_dat <- filter(hexham_dat, !is.na(rain_mm_h_mean))
+hexham_dat <- filter(hexham_dat, !is.na(temperature))
+
+hexham_lead <- hexham_dat %>%  
+  mutate(lead_varroa = lead(varroa_per_300_bees1, n = lag_nos)) %>% 
+  drop_na(lead_varroa)
+
+library(vegan)
+hexham_acoustics <- hexham_lead[, 14:41]
+hexham_acoustics <- decostand(hexham_acoustics, method = "hellinger")
+hexham_sco <- data.frame(predict(acoustic_pca, newdata = hexham_acoustics, type = "wa"))
+sin_hr <- sin(2*pi*hexham_lead$hour/24)
+cos_hr <- cos(2*pi*hexham_lead$hour/24)
+sin_day <- sin(2*pi*hexham_lead$day/365)
+cos_day <- cos(2*pi*hexham_lead$day/365)
+hexham_lead <- data.frame(cbind(hexham_lead), sin_hr, cos_hr,
+                         sin_day, cos_day, 
+                         PC1 = hexham_sco$PC1, PC2 = hexham_sco$PC2)
+
+selby_acoustic_lead <- selby_lead[, 14:41]
+selby_acoustic_lead <- decostand(selby_acoustic_lead, method = "hellinger")
+selby_lead_pca <- rda(selby_acoustic_lead)
+plot(selby_lead_pca, display="sites")
+selby_lead_acoustic_sco <- data.frame(scores(selby_lead_pca, display="sites"))
+selby_lead <- data.frame(cbind(selby_lead, selby_lead_acoustic_sco))
+
+selby_lead_glm <- glm(log(varroa_per_300_bees1+1) ~ sin_day + cos_day + 
+                        PC1 + PC2 + rain_mm_h_mean + temperature + windsp +
+                        lead_varroa,
+                      data = selby_lead)
+summary(selby_lead_glm)
+
+hexham_pred <- predict(selby_lead_glm, newdata = hexham_lead, type = "response")
+
+hexham_lead <- cbind(hexham_lead, hexham_pred)
+p1 <- ggplot(hexham_lead, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
+  geom_smooth() 
+p2 <- ggplot(hexham_lead, aes(x = date, y = exp(hexham_pred)-1, colour = colony)) +
+  geom_smooth() 
+grid.arrange(p1, p2, nrow = 1)
+hexham_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(hexham_pred)-1), data = hexham_lead)
+summary(hexham_obs_pred_lm)
+hexham_obs_pred_lme <- lme(log(varroa_per_300_bees1 + 1) ~ I(exp(hexham_pred)-1),
+                           random = ~1|colony, data = hexham_lead)
+summary(hexham_obs_pred_lme)
+r.squaredLR(hexham_obs_pred_lme)
+
