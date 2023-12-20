@@ -93,7 +93,7 @@ summary(selby_glm5)
 simulateResiduals(selby_glm5, plot=TRUE)
 
 
-# Try testing Selby-derived model glm4a vs Hexham
+# Try testing Selby-derived model glm4a vs Hexham ----
 hexham_dat <- filter(rawd, (date >= "2022-05-25" & date <= "2022-06-21") & site == "Hexham")
 hexham_dat <- filter(hexham_dat, !is.na(rain_mm_h_mean))
 hexham_dat <- filter(hexham_dat, !is.na(temperature))
@@ -117,3 +117,118 @@ ggplot(hexham_dat, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
   geom_smooth() 
 ggplot(hexham_dat, aes(x = date, y = exp(hexham_pred)-1, colour = colony)) +
   geom_smooth() 
+
+# Try creating model for 3 out of 4 Selby nests ----
+selby_dat <- mutate(selby_dat, PC1 = NULL, PC2 = NULL)
+## Omit Selby 1, setup model ----
+selby_omit <- filter(selby_dat, colony != 1)
+selby_test <- filter(selby_dat, colony == 1)
+selby_acoustic_omit <- selby_omit[, 14:41]
+selby_acoustic_omit <- decostand(selby_acoustic_omit, method = "hellinger")
+selby_omit_pca <- rda(selby_acoustic_omit)
+plot(selby_omit_pca, display="sites")
+selby_omit_acoustic_sco <- data.frame(scores(selby_omit_pca, display="sites"))
+selby_omit <- data.frame(cbind(selby_omit, selby_omit_acoustic_sco))
+selby_omit_glm <- glm(log(varroa_per_300_bees1+1) ~ sin_day + cos_day + 
+                     PC1 + PC2 + rain_mm_h_mean + temperature + windsp,
+                   data = selby_omit)
+summary(selby_omit_glm)
+## Test Selby1 model ----
+selby_test_acoustic <- selby_test[, 14:41]
+selby_test_acoustic <- decostand(selby_test_acoustic, method = "hellinger")
+selby_test_sco <- data.frame(predict(selby_omit_pca, newdata = selby_test_acoustic, type = "wa"))
+selby_test <- data.frame(cbind(selby_test), 
+                         PC1 = selby_test_sco$PC1, PC2 = selby_test_sco$PC2)
+selby_pred <- predict(selby_omit_glm, newdata = selby_test, type = "response")
+
+selby_test <- cbind(selby_test, selby_pred)
+ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
+  geom_smooth() 
+ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
+  geom_smooth() 
+selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
+summary(selby_obs_pred_lm)
+## Omit Selby 4 ----
+selby_omit <- filter(selby_dat, colony != 4)
+selby_test <- filter(selby_dat, colony == 4)
+selby_acoustic_omit <- selby_omit[, 14:41]
+selby_acoustic_omit <- decostand(selby_acoustic_omit, method = "hellinger")
+selby_omit_pca <- rda(selby_acoustic_omit)
+plot(selby_omit_pca, display="sites")
+selby_omit_acoustic_sco <- data.frame(scores(selby_omit_pca, display="sites"))
+selby_omit <- data.frame(cbind(selby_omit, selby_omit_acoustic_sco))
+selby_omit_glm <- glm(log(varroa_per_300_bees1+1) ~ sin_day + cos_day + 
+                        PC1 + PC2 + rain_mm_h_mean + temperature + windsp,
+                      data = selby_omit)
+summary(selby_omit_glm)
+## Test Selby4 model ----
+selby_test_acoustic <- selby_test[, 14:41]
+selby_test_acoustic <- decostand(selby_test_acoustic, method = "hellinger")
+selby_test_sco <- data.frame(predict(selby_omit_pca, newdata = selby_test_acoustic, type = "wa"))
+selby_test <- data.frame(cbind(selby_test), 
+                         PC1 = selby_test_sco$PC1, PC2 = selby_test_sco$PC2)
+selby_pred <- predict(selby_omit_glm, newdata = selby_test, type = "response")
+
+selby_test <- cbind(selby_test, selby_pred)
+ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
+  geom_smooth() 
+ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
+  geom_smooth() 
+selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
+summary(selby_obs_pred_lm)
+## Omit Selby 6 ----
+selby_omit <- filter(selby_dat, colony != 6)
+selby_test <- filter(selby_dat, colony == 6)
+selby_acoustic_omit <- selby_omit[, 14:41]
+selby_acoustic_omit <- decostand(selby_acoustic_omit, method = "hellinger")
+selby_omit_pca <- rda(selby_acoustic_omit)
+plot(selby_omit_pca, display="sites")
+selby_omit_acoustic_sco <- data.frame(scores(selby_omit_pca, display="sites"))
+selby_omit <- data.frame(cbind(selby_omit, selby_omit_acoustic_sco))
+selby_omit_glm <- glm(log(varroa_per_300_bees1+1) ~ sin_day + cos_day + 
+                        PC1 + PC2 + rain_mm_h_mean + temperature + windsp,
+                      data = selby_omit)
+summary(selby_omit_glm)
+## Test Selby6 model ----
+selby_test_acoustic <- selby_test[, 14:41]
+selby_test_acoustic <- decostand(selby_test_acoustic, method = "hellinger")
+selby_test_sco <- data.frame(predict(selby_omit_pca, newdata = selby_test_acoustic, type = "wa"))
+selby_test <- data.frame(cbind(selby_test), 
+                         PC1 = selby_test_sco$PC1, PC2 = selby_test_sco$PC2)
+selby_pred <- predict(selby_omit_glm, newdata = selby_test, type = "response")
+
+selby_test <- cbind(selby_test, selby_pred)
+ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
+  geom_smooth() 
+ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
+  geom_smooth() 
+selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
+summary(selby_obs_pred_lm)
+## Omit Selby 8
+selby_omit <- filter(selby_dat, colony != 8)
+selby_test <- filter(selby_dat, colony == 8)
+selby_acoustic_omit <- selby_omit[, 14:41]
+selby_acoustic_omit <- decostand(selby_acoustic_omit, method = "hellinger")
+selby_omit_pca <- rda(selby_acoustic_omit)
+plot(selby_omit_pca, display="sites")
+selby_omit_acoustic_sco <- data.frame(scores(selby_omit_pca, display="sites"))
+selby_omit <- data.frame(cbind(selby_omit, selby_omit_acoustic_sco))
+selby_omit_glm <- glm(log(varroa_per_300_bees1+1) ~ sin_day + cos_day + 
+                        PC1 + PC2 + rain_mm_h_mean + temperature + windsp,
+                      data = selby_omit)
+summary(selby_omit_glm)
+## Test Selby8 model ----
+selby_test_acoustic <- selby_test[, 14:41]
+selby_test_acoustic <- decostand(selby_test_acoustic, method = "hellinger")
+selby_test_sco <- data.frame(predict(selby_omit_pca, newdata = selby_test_acoustic, type = "wa"))
+selby_test <- data.frame(cbind(selby_test), 
+                         PC1 = selby_test_sco$PC1, PC2 = selby_test_sco$PC2)
+selby_pred <- predict(selby_omit_glm, newdata = selby_test, type = "response")
+
+selby_test <- cbind(selby_test, selby_pred)
+ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
+  geom_smooth() 
+ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
+  geom_smooth() 
+selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
+summary(selby_obs_pred_lm)
