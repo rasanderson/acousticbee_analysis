@@ -53,8 +53,8 @@ ggplot(selby_dat, aes(y = varroa_per_300_bees1, x = acoustic_sco$PC2, colour=col
 # Assemble data for statistical models
 sin_hr <- sin(2*pi*selby_dat$hour/24)
 cos_hr <- cos(2*pi*selby_dat$hour/24)
-sin_day <- sin(2*pi*selby_dat$day/365)
-cos_day <- cos(2*pi*selby_dat$day/365)
+sin_day <- sin(2*pi*yday(selby_dat$date)/365)
+cos_day <- cos(2*pi*yday(selby_dat$date)/365)
 selby_dat <- data.frame(cbind(selby_dat), sin_hr, cos_hr,
                         sin_day, cos_day, acoustic_sco)
 
@@ -110,8 +110,8 @@ tmp2 <- decostand(tmp2, method = "hellinger")
 hexham_sco <- data.frame(predict(acoustic_pca, newdata = tmp2, type = "wa"))
 sin_hr <- sin(2*pi*hexham_dat$hour/24)
 cos_hr <- cos(2*pi*hexham_dat$hour/24)
-sin_day <- sin(2*pi*hexham_dat$day/365)
-cos_day <- cos(2*pi*hexham_dat$day/365)
+sin_day <- sin(2*pi*yday(hexham_dat$date)/365)
+cos_day <- cos(2*pi*yday(hexham_dat$date)/365)
 hexham_dat <- data.frame(cbind(hexham_dat), sin_hr, cos_hr,
                         sin_day, cos_day, 
                         PC1 = hexham_sco$PC1, PC2 = hexham_sco$PC2)
@@ -441,8 +441,8 @@ hexham_acoustics <- decostand(hexham_acoustics, method = "hellinger")
 hexham_sco <- data.frame(predict(acoustic_pca, newdata = hexham_acoustics, type = "wa"))
 sin_hr <- sin(2*pi*hexham_lead$hour/24)
 cos_hr <- cos(2*pi*hexham_lead$hour/24)
-sin_day <- sin(2*pi*hexham_lead$day/365)
-cos_day <- cos(2*pi*hexham_lead$day/365)
+sin_day <- sin(2*pi*yday(hexham_lead$date)/365)
+cos_day <- cos(2*pi*yday(hexham_lead$date)/365)
 hexham_lead <- data.frame(cbind(hexham_lead), sin_hr, cos_hr,
                          sin_day, cos_day, 
                          PC1 = hexham_sco$PC1, PC2 = hexham_sco$PC2)
