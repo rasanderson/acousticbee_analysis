@@ -256,19 +256,19 @@ lag_nos  <- lag_days * 20 # There are 4 sets of 5 records per day
 ## Create lagged datasets
 selby_lead1 <- selby_dat %>% 
   filter(colony == 1) %>% 
-  mutate(lead_varroa = lead(varroa_per_300_bees1, n = lag_nos)) %>% 
+  mutate(lead_varroa = lag(varroa_per_300_bees1, n = lag_nos)) %>% 
   drop_na(lead_varroa)
 selby_lead4 <- selby_dat %>% 
   filter(colony == 4) %>% 
-  mutate(lead_varroa = lead(varroa_per_300_bees1, n = lag_nos)) %>% 
+  mutate(lead_varroa = lag(varroa_per_300_bees1, n = lag_nos)) %>% 
   drop_na(lead_varroa)
 selby_lead6 <- selby_dat %>% 
   filter(colony == 6) %>% 
-  mutate(lead_varroa = lead(varroa_per_300_bees1, n = lag_nos)) %>% 
+  mutate(lead_varroa = lag(varroa_per_300_bees1, n = lag_nos)) %>% 
   drop_na(lead_varroa)
 selby_lead8 <- selby_dat %>% 
   filter(colony == 8) %>% 
-  mutate(lead_varroa = lead(varroa_per_300_bees1, n = lag_nos)) %>% 
+  mutate(lead_varroa = lag(varroa_per_300_bees1, n = lag_nos)) %>% 
   drop_na(lead_varroa)
 selby_lead <- rbind(selby_lead1, selby_lead4, selby_lead6, selby_lead8)
 # Now create selby model with various day lag varroa (20 records) ----
@@ -306,9 +306,13 @@ selby_test <- data.frame(cbind(selby_test),
 selby_pred <- predict(selby_omit_glm, newdata = selby_test, type = "response")
 selby_test <- cbind(selby_test, selby_pred)
 p1 <- ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
-  geom_smooth() 
+  geom_point() +
+  geom_smooth()  + 
+  scale_y_continuous(limits = c(0, NA))
 p2 <- ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
-  geom_smooth() 
+  geom_point() +
+  geom_smooth()  + 
+  scale_y_continuous(limits = c(0, NA))
 grid.arrange(p1, p2, nrow = 1)
 selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
 summary(selby_obs_pred_lm)
@@ -334,9 +338,13 @@ selby_test <- data.frame(cbind(selby_test),
 selby_pred <- predict(selby_omit_glm, newdata = selby_test, type = "response")
 selby_test <- cbind(selby_test, selby_pred)
 p1 <- ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
-  geom_smooth() 
+  geom_point() +
+  geom_smooth()  + 
+  scale_y_continuous(limits = c(0, NA))
 p2 <- ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
-  geom_smooth() 
+  geom_point() +
+  geom_smooth()  + 
+  scale_y_continuous(limits = c(0, NA))
 grid.arrange(p1, p2, nrow = 1)
 selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
 summary(selby_obs_pred_lm)
@@ -362,9 +370,13 @@ selby_test <- data.frame(cbind(selby_test),
 selby_pred <- predict(selby_omit_glm, newdata = selby_test, type = "response")
 selby_test <- cbind(selby_test, selby_pred)
 p1 <- ggplot(selby_test, aes(x = date, y = varroa_per_300_bees1, colour = colony)) +
-  geom_smooth() 
+  geom_point() +
+  geom_smooth()  + 
+  scale_y_continuous(limits = c(0, NA))
 p2 <- ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) +
-  geom_smooth() 
+  geom_point() +
+  geom_smooth() + 
+  scale_y_continuous(limits = c(0, NA)) 
 grid.arrange(p1, p2, nrow = 1)
 selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
 summary(selby_obs_pred_lm)
@@ -404,13 +416,19 @@ summary(selby_obs_pred_lm)
 
 # Hexham lagged model ----
 hexham_dat <- filter(rawd, (date >= "2022-05-25" & date <= "2022-06-21") &
-                       site == "Hexham" & cbpv_status1 == "N")
+                       site == "Hexham")
 hexham_dat <- filter(hexham_dat, !is.na(rain_mm_h_mean))
 hexham_dat <- filter(hexham_dat, !is.na(temperature))
 
-hexham_lead <- hexham_dat %>%  
-  mutate(lead_varroa = lead(varroa_per_300_bees1, n = lag_nos)) %>% 
+hexham_lead46 <- hexham_dat %>%  
+  filter(colony == 46) %>% 
+  mutate(lead_varroa = lag(varroa_per_300_bees1, n = lag_nos)) %>% 
   drop_na(lead_varroa)
+hexham_lead72 <- hexham_dat %>%  
+  filter(colony == 72) %>% 
+  mutate(lead_varroa = lag(varroa_per_300_bees1, n = lag_nos)) %>% 
+  drop_na(lead_varroa)
+hexham_lead <- rbind(hexham_lead46, hexham_lead72)
 
 library(vegan)
 hexham_acoustics <- hexham_lead[, 14:41]
