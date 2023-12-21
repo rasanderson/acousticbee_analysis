@@ -16,8 +16,11 @@ library(gridExtra)
 library(MuMIn)
 library(Metrics)
 library(piecewiseSEM)
+library(lavaan)
+library(lavaanPlot)
 library(solrad)
 library(chillR)
+library(scales)
 source("night_vs_day.R")
 
 rawd <- read.csv("data/All_Data_Master_Shortened.csv")
@@ -44,6 +47,7 @@ daynight <- light_dark(day_no = selby_dat$day_no,
                        hour = selby_dat$hour,
                        latitude = latitude_selby)
 selby_dat <- mutate(selby_dat, daynight = daynight)
+selby_dat <- mutate(selby_dat, log_varroa = log(varroa_per_300_bees1 + 1))
 # Create PCA of acoustics ----
 library(vegan)
 tmp2 <- selby_dat[, 14:41]
@@ -100,3 +104,16 @@ ggplot(selby_dat, aes(x = date, y = IQR, colour = colony)) +
   geom_point() +
   geom_smooth()
 
+# Now configure SEM ----
+# Seems to blow up with raw data
+selby_dat <- selby_dat %>% 
+  #mutate(zday_no = (day_no - mean(day_no) / sd(day_no)),
+  #       zIQR    = (IQR    - mean(IQR)    / sd(IQR)))
+  mutate(zIQR = as.vector(scale(IQR)),
+         zday_no = as.vector(scale(day_no)))
+full_sem <- psem(
+  lm(log_varroa ~ zday_no + zIQR, data = selby_dat),
+  lm(zIQR ~ zday_no, data = selby_dat)
+)
+
+summary(full_sem)
