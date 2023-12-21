@@ -115,5 +115,34 @@ full_sem <- psem(
   lm(log_varroa ~ zday_no + zIQR, data = selby_dat),
   lm(zIQR ~ zday_no, data = selby_dat)
 )
-
+print(full_sem)
 summary(full_sem)
+plot(full_sem)
+sem.plot(full_sem)
+
+# Not sure if the following would work. Ideally want latent variables e.g.
+# for acoustics and weather (possible in lavaan), and random-effects models etc
+# (possible in piecewiseSEM). CoPilot code below claims they can be combined.
+# # library(piecewiseSEM)
+# 
+# # Fit the first model
+# mod1 <- lm(y ~ x1 + x2, data = mydata)
+# 
+# # Fit the second model
+# mod2 <- glm(y ~ x3 + x4, data = mydata)
+# 
+# # Fit the third model
+# mod3 <- '
+#   # Latent variable
+#   LV =~ x5 + x6 + x7
+# 
+#   # Direct effects
+#   y ~ a*LV + b*x8
+# 
+#   # Indirect effect
+#   z ~ c*y
+# '
+# fit3 <- lavaan::sem(mod3, data = mydata)
+# 
+# # Combine the models using psem()
+# psem(mod1, mod2, fit3, data = mydata)
