@@ -11,6 +11,7 @@ library(DHARMa)
 library(glmmTMB)
 library(gridExtra)
 library(MuMIn)
+library(Metrics)
 
 rawd <- read.csv("data/All_Data_Master_Shortened.csv")
 # Three rows with missing values causing trouble need removing
@@ -314,8 +315,9 @@ p2 <- ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) 
   geom_smooth()  + 
   scale_y_continuous(limits = c(0, NA))
 grid.arrange(p1, p2, nrow = 1)
-selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
+selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ selby_pred, data = selby_test)
 summary(selby_obs_pred_lm)
+rmse(log(selby_test$varroa_per_300_bees1 +1), selby_test$selby_pred)
 ## Lagged Selby4 ----
 selby_omit <- filter(selby_lead, colony != 4)
 selby_test <- filter(selby_lead, colony == 4)
@@ -346,8 +348,9 @@ p2 <- ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) 
   geom_smooth()  + 
   scale_y_continuous(limits = c(0, NA))
 grid.arrange(p1, p2, nrow = 1)
-selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
+selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ selby_pred, data = selby_test)
 summary(selby_obs_pred_lm)
+rmse(log(selby_test$varroa_per_300_bees1 +1), selby_test$selby_pred)
 ## Lagged Selby4 ----
 selby_omit <- filter(selby_lead, colony != 6)
 selby_test <- filter(selby_lead, colony == 6)
@@ -378,8 +381,9 @@ p2 <- ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) 
   geom_smooth() + 
   scale_y_continuous(limits = c(0, NA)) 
 grid.arrange(p1, p2, nrow = 1)
-selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
+selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ selby_pred, data = selby_test)
 summary(selby_obs_pred_lm)
+rmse(log(selby_test$varroa_per_300_bees1 +1), selby_test$selby_pred)
 ## Lagged Selby4 ----
 selby_omit <- filter(selby_lead, colony != 8)
 selby_test <- filter(selby_lead, colony == 8)
@@ -410,8 +414,9 @@ p2 <- ggplot(selby_test, aes(x = date, y = exp(selby_pred)-1, colour = colony)) 
   geom_point() +
   scale_y_continuous(limits = c(0, NA))
 grid.arrange(p1, p2, nrow = 1)
-selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(selby_pred)-1), data = selby_test)
+selby_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ selby_pred, data = selby_test)
 summary(selby_obs_pred_lm)
+rmse(log(selby_test$varroa_per_300_bees1 +1), selby_test$selby_pred)
 
 
 # Hexham lagged model ----
@@ -467,9 +472,10 @@ p2 <- ggplot(hexham_lead, aes(x = date, y = exp(hexham_pred)-1, colour = colony)
   geom_point() + 
   scale_y_continuous(limits = c(0, NA))
 grid.arrange(p1, p2, nrow = 1)
-hexham_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ I(exp(hexham_pred)-1), data = hexham_lead)
+hexham_obs_pred_lm <- lm(log(varroa_per_300_bees1 + 1) ~ hexham_pred, data = hexham_lead)
 summary(hexham_obs_pred_lm)
-hexham_obs_pred_lme <- lme(log(varroa_per_300_bees1 + 1) ~ I(exp(hexham_pred)-1),
+rmse(log(hexham_lead$varroa_per_300_bees1 +1), hexham_lead$hexham_pred)
+hexham_obs_pred_lme <- lme(log(varroa_per_300_bees1 + 1) ~ hexham_pred,
                            random = ~1|colony, data = hexham_lead)
 summary(hexham_obs_pred_lme)
 r.squaredLR(hexham_obs_pred_lme)
