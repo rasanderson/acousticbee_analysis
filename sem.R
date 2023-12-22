@@ -84,6 +84,12 @@ ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = PC1, colour = daynight)
 ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = PC2, colour = daynight)) +
   geom_smooth() +
   facet_wrap(~colony)
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = temperature, colour = daynight)) +
+  geom_smooth() 
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = windsp, colour = daynight)) +
+  geom_smooth() 
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = rain_mm_h_mean, colour = daynight)) +
+  geom_smooth() 
 ggplot(selby_dat, aes(x = date, y = RMS, colour = colony)) +
   geom_point() +
   geom_smooth()
