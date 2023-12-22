@@ -74,6 +74,16 @@ ggplot(selby_dat, aes(x = colony, y = freq_mode)) +
   geom_boxplot()
 ggplot(selby_dat, aes(x = colony, y = IQR)) +
   geom_boxplot()
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = colony, y = PC1, colour = daynight)) +
+  geom_boxplot()
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = colony, y = PC2, colour = daynight)) +
+  geom_boxplot()
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = PC1, colour = daynight)) +
+  geom_smooth() +
+  facet_wrap(~colony)
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = PC2, colour = daynight)) +
+  geom_smooth() +
+  facet_wrap(~colony)
 ggplot(selby_dat, aes(x = date, y = RMS, colour = colony)) +
   geom_point() +
   geom_smooth()
