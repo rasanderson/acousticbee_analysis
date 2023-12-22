@@ -21,6 +21,8 @@ library(lavaanPlot)
 library(solrad)
 library(chillR)
 library(scales)
+library(multcompView)
+library(nlme)
 source("night_vs_day.R")
 
 rawd <- read.csv("data/All_Data_Master_Shortened.csv")
@@ -74,21 +76,21 @@ ggplot(selby_dat, aes(x = colony, y = freq_mode)) +
   geom_boxplot()
 ggplot(selby_dat, aes(x = colony, y = IQR)) +
   geom_boxplot()
-ggplot(cbind(selby_dat, acoustic_sco), aes(x = colony, y = PC1, colour = daynight)) +
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = colony, y = PC1, colour = as.factor(daynight))) +
   geom_boxplot()
-ggplot(cbind(selby_dat, acoustic_sco), aes(x = colony, y = PC2, colour = daynight)) +
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = colony, y = PC2, colour = as.factor(daynight))) +
   geom_boxplot()
-ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = PC1, colour = daynight)) +
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = PC1, colour = as.factor(daynight))) +
   geom_smooth() +
   facet_wrap(~colony)
-ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = PC2, colour = daynight)) +
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = PC2, colour = as.factor(daynight))) +
   geom_smooth() +
   facet_wrap(~colony)
-ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = temperature, colour = daynight)) +
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = temperature, colour = as.factor(daynight))) +
   geom_smooth() 
-ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = windsp, colour = daynight)) +
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = windsp, colour = as.factor(daynight))) +
   geom_smooth() 
-ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = rain_mm_h_mean, colour = daynight)) +
+ggplot(cbind(selby_dat, acoustic_sco), aes(x = date, y = rain_mm_h_mean, colour = as.factor(daynight))) +
   geom_smooth() 
 ggplot(selby_dat, aes(x = date, y = RMS, colour = colony)) +
   geom_point() +
@@ -123,18 +125,89 @@ ggplot(selby_dat, aes(x = date, y = IQR, colour = colony)) +
 # Now configure SEM ----
 # Seems to blow up with raw data
 selby_dat <- selby_dat %>% 
-  #mutate(zday_no = (day_no - mean(day_no) / sd(day_no)),
-  #       zIQR    = (IQR    - mean(IQR)    / sd(IQR)))
   mutate(zIQR = as.vector(scale(IQR)),
-         zday_no = as.vector(scale(day_no)))
-full_sem <- psem(
-  lm(log_varroa ~ zday_no + zIQR, data = selby_dat),
-  lm(zIQR ~ zday_no, data = selby_dat)
+         zRMS = as.vector(scale(RMS)),
+         zfreq_mode = as.vector(scale(freq_mode)),
+         ztemperature = as.vector(scale(temperature)),
+         zrain = as.vector(scale(rain_mm_h_mean)),
+         zwindsp = as.vector(scale(windsp)),
+         zday_no = as.vector(scale(day_no)),
+         PC1 = as.vector(scale(acoustic_sco$PC1)),
+         PC2 = as.vector(scale(acoustic_sco$PC2))
+         )
+
+sem_mod1 <- psem(
+  lm(ztemperature ~ zday_no + daynight, data = selby_dat),
+  lm(zwindsp ~ zday_no + daynight, data = selby_dat),
+  lm(zrain ~ zday_no + daynight, data = selby_dat),
+  lm(zIQR ~ zday_no, data = selby_dat),
+  lm(zfreq_mode ~ zday_no, data = selby_dat),
+  lm(zRMS ~ zday_no, data = selby_dat),
+  lm(log_varroa ~ zwindsp + zrain + ztemperature + zIQR + zRMS + zfreq_mode + zday_no, data = selby_dat)
 )
-print(full_sem)
-summary(full_sem)
-plot(full_sem)
-sem.plot(full_sem)
+
+summary(sem_mod1)
+plot(sem_mod1)
+AIC(sem_mod1)
+
+sem_mod2 <- psem(
+  lm(ztemperature ~ zday_no + daynight, data = selby_dat),
+  lm(zwindsp ~ zday_no + daynight, data = selby_dat),
+  lm(zrain ~ zday_no + daynight, data = selby_dat),
+  lm(zIQR ~ zday_no, data = selby_dat),
+  lm(zfreq_mode ~ zday_no, data = selby_dat),
+  lm(log_varroa ~ zwindsp + zrain + ztemperature + zIQR + zfreq_mode + zday_no, data = selby_dat)
+)
+
+summary(sem_mod2)
+plot(sem_mod2)
+AIC(sem_mod2)
+anova(sem_mod1, sem_mod2)
+
+sem_mod3 <- psem(
+  lm(ztemperature ~ zday_no + daynight, data = selby_dat),
+  lm(zwindsp ~ zday_no + daynight, data = selby_dat),
+  lm(zrain ~ zday_no + daynight, data = selby_dat),
+  lm(zIQR ~ zday_no, data = selby_dat),
+  lm(zfreq_mode ~ zday_no, data = selby_dat),
+  lme(log_varroa ~ zwindsp + zrain + ztemperature + zIQR + zfreq_mode + zday_no,
+      random = ~ 1 | colony, data = selby_dat)
+)
+
+summary(sem_mod3)
+plot(sem_mod3)
+AIC(sem_mod3)
+anova(sem_mod2, sem_mod3)
+
+sem_mod4 <- psem(
+  lm(zwindsp ~ zday_no + daynight, data = selby_dat),
+  lm(zrain ~ zday_no + daynight, data = selby_dat),
+  lm(zIQR ~ zday_no, data = selby_dat),
+  lm(zfreq_mode ~ zday_no, data = selby_dat),
+  lme(log_varroa ~ zwindsp + zrain + zIQR + zfreq_mode + zday_no,
+      random = ~ 1 | colony, data = selby_dat)
+)
+
+summary(sem_mod4)
+plot(sem_mod4)
+AIC(sem_mod4)
+anova(sem_mod3, sem_mod4)
+
+# using PC1 and PC2 marginally better, but less interpretable
+sem_mod5 <- psem(
+  lm(zwindsp ~ zday_no + daynight, data = selby_dat),
+  lm(zrain ~ zday_no + daynight, data = selby_dat),
+  lm(PC1 ~ zday_no, data = selby_dat),
+  lm(PC2 ~ zday_no, data = selby_dat),
+  lme(log_varroa ~ zwindsp + zrain + PC1 + PC2 + zday_no,
+      random = ~ 1 | colony, data = selby_dat)
+)
+
+summary(sem_mod5)
+plot(sem_mod5)
+AIC(sem_mod5)
+anova(sem_mod4, sem_mod5)
+
 
 # Not sure if the following would work. Ideally want latent variables e.g.
 # for acoustics and weather (possible in lavaan), and random-effects models etc

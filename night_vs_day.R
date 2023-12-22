@@ -34,16 +34,16 @@ light_dark<-function(day_no, hour, latitude){
   if(hour[i] <= 12){
     # Before noon
     if(hour[i] > abs(sunrise_hr[i])){
-      tmp <- "daylight"
+      tmp <- 1
     } else {
-      tmp <- "nightime"
+      tmp <- 0
     }
   } else{
     # After noon
     if(hour[i]-12 < abs(sunset_hr[i])){
-      tmp <- "daylight"
+      tmp <- 1
     } else {
-      tmp <- "nightime"
+      tmp <- 0
     }
   }
     all_res <- c(all_res, tmp)
