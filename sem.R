@@ -132,17 +132,17 @@ selby_dat <- selby_dat %>%
          zrain = as.vector(scale(rain_mm_h_mean)),
          zwindsp = as.vector(scale(windsp)),
          zday_no = as.vector(scale(day_no)),
-         PC1 = as.vector(scale(acoustic_sco$PC1)),
-         PC2 = as.vector(scale(acoustic_sco$PC2))
+         zPC1 = as.vector(scale(acoustic_sco$PC1)),
+         zPC2 = as.vector(scale(acoustic_sco$PC2))
          )
 
 sem_mod1 <- psem(
   lm(ztemperature ~ zday_no + daynight, data = selby_dat),
   lm(zwindsp ~ zday_no + daynight, data = selby_dat),
   lm(zrain ~ zday_no + daynight, data = selby_dat),
-  lm(zIQR ~ zday_no, data = selby_dat),
-  lm(zfreq_mode ~ zday_no, data = selby_dat),
-  lm(zRMS ~ zday_no, data = selby_dat),
+  lm(zIQR ~ zday_no + ztemperature + zrain + zwindsp, data = selby_dat),
+  lm(zfreq_mode ~ zday_no + ztemperature + zrain + zwindsp, data = selby_dat),
+  lm(zRMS ~ zday_no + ztemperature + zrain + zwindsp, data = selby_dat),
   lm(log_varroa ~ zwindsp + zrain + ztemperature + zIQR + zRMS + zfreq_mode + zday_no, data = selby_dat)
 )
 
@@ -154,7 +154,7 @@ sem_mod2 <- psem(
   lm(ztemperature ~ zday_no + daynight, data = selby_dat),
   lm(zwindsp ~ zday_no + daynight, data = selby_dat),
   lm(zrain ~ zday_no + daynight, data = selby_dat),
-  lm(zIQR ~ zday_no, data = selby_dat),
+  lm(zIQR ~ zday_no + ztemperature + zwindsp, data = selby_dat),
   lm(zfreq_mode ~ zday_no, data = selby_dat),
   lm(log_varroa ~ zwindsp + zrain + ztemperature + zIQR + zfreq_mode + zday_no, data = selby_dat)
 )
@@ -168,10 +168,9 @@ sem_mod3 <- psem(
   lm(ztemperature ~ zday_no + daynight, data = selby_dat),
   lm(zwindsp ~ zday_no + daynight, data = selby_dat),
   lm(zrain ~ zday_no + daynight, data = selby_dat),
-  lm(zIQR ~ zday_no, data = selby_dat),
-  lm(zfreq_mode ~ zday_no, data = selby_dat),
-  lme(log_varroa ~ zwindsp + zrain + ztemperature + zIQR + zfreq_mode + zday_no,
-      random = ~ 1 | colony, data = selby_dat)
+  lme(zIQR ~ zday_no + ztemperature + zwindsp, random = ~ 1 | colony, data = selby_dat),
+  lme(zfreq_mode ~ zday_no, random = ~ 1 | colony, data = selby_dat),
+  lme(log_varroa ~ zwindsp + zrain + ztemperature + zIQR + zfreq_mode + zday_no, random = ~ 1 | colony, data = selby_dat)
 )
 
 summary(sem_mod3)
@@ -180,12 +179,12 @@ AIC(sem_mod3)
 anova(sem_mod2, sem_mod3)
 
 sem_mod4 <- psem(
+  lm(ztemperature ~ zday_no + daynight, data = selby_dat),
   lm(zwindsp ~ zday_no + daynight, data = selby_dat),
   lm(zrain ~ zday_no + daynight, data = selby_dat),
-  lm(zIQR ~ zday_no, data = selby_dat),
-  lm(zfreq_mode ~ zday_no, data = selby_dat),
-  lme(log_varroa ~ zwindsp + zrain + zIQR + zfreq_mode + zday_no,
-      random = ~ 1 | colony, data = selby_dat)
+  lme(zIQR ~ zday_no + ztemperature + zwindsp, random = ~ 1 | colony, data = selby_dat),
+  lme(zfreq_mode ~ zday_no, random = ~ 1 | colony, data = selby_dat),
+  lme(log_varroa ~ zwindsp + zrain + zIQR + zfreq_mode + zday_no, random = ~ 1 | colony, data = selby_dat)
 )
 
 summary(sem_mod4)
@@ -193,13 +192,15 @@ plot(sem_mod4)
 AIC(sem_mod4)
 anova(sem_mod3, sem_mod4)
 
+
 # using PC1 and PC2 marginally better, but less interpretable
 sem_mod5 <- psem(
   lm(zwindsp ~ zday_no + daynight, data = selby_dat),
   lm(zrain ~ zday_no + daynight, data = selby_dat),
-  lm(PC1 ~ zday_no, data = selby_dat),
-  lm(PC2 ~ zday_no, data = selby_dat),
-  lme(log_varroa ~ zwindsp + zrain + PC1 + PC2 + zday_no,
+  lm(ztemperature ~ zday_no + daynight, data = selby_dat),
+  lm(zPC1 ~ zday_no + ztemperature + zwindsp, data = selby_dat),
+  lm(zPC2 ~ zday_no + ztemperature + zwindsp, data = selby_dat),
+  lme(log_varroa ~ zwindsp + zrain + zday_no + zPC1 + zPC2,
       random = ~ 1 | colony, data = selby_dat)
 )
 
